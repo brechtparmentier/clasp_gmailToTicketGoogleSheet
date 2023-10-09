@@ -16,10 +16,22 @@ function addEmailsToSheetRechtstreeks() {
   }
 }
 
+function clearSheets() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheetNames = ["ontvangenMails", "verwerkMailBody"];
+
+  for (var i = 0; i < sheetNames.length; i++) {
+    var sheet = ss.getSheetByName(sheetNames[i]);
+    sheet.getRange(2, 1, sheet.getLastRow(), sheet.getLastColumn()).clearContent();
+  }
+}
+
 function processThread(thread, existingEmailIds, nameLookupRange, allowedEmails, sourceSheet, targetSheet, parentFolderId) {
   var messages = thread.getMessages();
   var threadId = thread.getId();
   var folder = createOrGetFolder(threadId, parentFolderId);
+
+  var isNewFolder = !doesFolderExist(threadId, parentFolderId); // Nieuw toegevoegd
 
   for (var j in messages) {
     var message = messages[j];
@@ -29,33 +41,36 @@ function processThread(thread, existingEmailIds, nameLookupRange, allowedEmails,
     var emailType = isForwarded(subject, body) ? "forwarded" : "rechtstreeks";
 
     if (!existingEmailIds.has(emailId)) {
-      processMessage(message, subject, body, emailId, emailType, nameLookupRange, allowedEmails, sourceSheet, targetSheet, folder);
+      processMessage(message, isNewFolder, subject, body, emailId, emailType, nameLookupRange, allowedEmails, sourceSheet, targetSheet, folder);
       existingEmailIds.add(emailId);
     }
   }
   thread.markRead();
 }
 
-function processMessage(message, subject, body, emailId, emailType, nameLookupRange, allowedEmails, sourceSheet, targetSheet, folder) {
-    var date = message.getDate();
+function processMessage(message, isNewFolder, subject, body, emailId, emailType, nameLookupRange, allowedEmails, sourceSheet, targetSheet, folder) {
+  var processedData = []; // Initialize to an empty array
+
+  var date = message.getDate();
   var sender = message.getFrom();
   var emailMatch = sender.match(/<(.+)>/);
   var emailOnly = emailMatch ? emailMatch[1] : sender;
   var senderName = getSenderName(emailOnly, nameLookupRange);
   var attachments = message.getAttachments();
+  Logger.log("Processing email from " + sender + " with subject " + subject + " and emailId " + emailId + "with number of attachments " + attachments.length);
 
   if (allowedEmails.has(emailOnly)) {
-    var processedData = processEmailBody(body); // Voeg deze lijn toe
+    processedData = processEmailBody(body); // Reassign the value
     appendToSheets(date, subject, body, emailId, emailType, senderName, sourceSheet, targetSheet, processedData);
   }
 
-  if (attachments.length > 0) {
+  if (isNewFolder && attachments.length > 0) {
+    // Save only if the folder is new
     var attachmentUrls = saveAttachmentsToFolder(attachments, folder);
     appendToSheets(date, subject, body, emailId, emailType, senderName, sourceSheet, targetSheet, processedData, attachmentUrls);
   } else {
     appendToSheets(date, subject, body, emailId, emailType, senderName, sourceSheet, targetSheet, processedData);
   }
-}
 }
 
 function findRowOfMaxValue(sheet, column) {
@@ -115,7 +130,7 @@ function getSenderName(emailOnly, nameLookupRange) {
 }
 
 function appendToSheets(date, subject, body, emailId, emailType, senderName, sourceSheet, targetSheet, processedData, attachmentUrls) {
-    sourceSheet.appendRow([date, subject, body, emailId, emailType]);
+  sourceSheet.appendRow([date, subject, body, emailId, emailType]);
   var rowOfMaxValue = findRowOfMaxValue(targetSheet, "A") + 1;
 
   var values = [
@@ -150,4 +165,10 @@ function processEmailBody(body) {
   // Voeg verder verwerking toe indien nodig
 
   return [from, date, subject, to];
+}
+
+function doesFolderExist(threadId, parentFolderId) {
+  var parentFolder = DriveApp.getFolderById(parentFolderId);
+  var folders = parentFolder.getFoldersByName(threadId);
+  return folders.hasNext();
 }
