@@ -1,13 +1,13 @@
 function addEmailsToSheetRechtstreeks() {
   var sheets = SpreadsheetApp.getActiveSpreadsheet();
   var sourceSheet = sheets.getSheetByName("ontvangenMails");
-  var existingEmailIds = sourceSheet.getRange(1, 4, sourceSheet.getLastRow()).getValues().flat();
+  var existingEmailIds = new Set(sourceSheet.getRange(1, 4, sourceSheet.getLastRow()).getValues().flat());
   var targetSpreadsheet = SpreadsheetApp.openById("19EApoPk-o7tRaYx1EE8bwPl1Cg0V7KmlOjehPL0DZDI");
   var targetSheet = targetSpreadsheet.getSheetByName("_inkomendeVragen");
   var nameLookupSheet = targetSpreadsheet.getSheetByName("vanWie");
   var setupSheet = sheets.getSheetByName("setup");
   var nameLookupRange = nameLookupSheet.getRange("A:B").getValues();
-  var allowedEmails = setupSheet.getRange("A:A").getValues().flat();
+  var allowedEmails = new Set(setupSheet.getRange("A:A").getValues().flat());
   var threads = GmailApp.search("to:helpdesk@godk.be");
   var parentFolderId = "1k8ZJhnXKPjWCiAllnUfBrswlRKySt0RB"; // Shared Drive map ID
 
@@ -28,9 +28,9 @@ function processThread(thread, existingEmailIds, nameLookupRange, allowedEmails,
     var body = message.getPlainBody();
     var emailType = isForwarded(subject, body) ? "forwarded" : "rechtstreeks";
 
-    if (existingEmailIds.indexOf(emailId) === -1) {
+    if (!existingEmailIds.has(emailId)) {
       processMessage(message, subject, body, emailId, emailType, nameLookupRange, allowedEmails, sourceSheet, targetSheet, folder);
-      existingEmailIds.push(emailId);
+      existingEmailIds.add(emailId);
     }
   }
   thread.markRead();
@@ -44,8 +44,9 @@ function processMessage(message, subject, body, emailId, emailType, nameLookupRa
   var senderName = getSenderName(emailOnly, nameLookupRange);
   var attachments = message.getAttachments();
 
-  if (allowedEmails.indexOf(emailOnly) !== -1) {
-appendToSheets(date, subject, body, emailId, emailType, senderName, sourceSheet, targetSheet);
+  if (allowedEmails.has(emailOnly)) {
+    var processedData = processEmailBody(body); // Voeg deze lijn toe
+    appendToSheets(date, subject, body, emailId, emailType, senderName, sourceSheet, targetSheet, processedData);
   }
 
   if (attachments.length > 0) {
@@ -110,11 +111,36 @@ function getSenderName(emailOnly, nameLookupRange) {
   return senderName || "Onbekend";
 }
 
-function appendToSheets(date, subject, body, emailId, emailType, senderName, sourceSheet, targetSheet) {
+function appendToSheets(date, subject, body, emailId, emailType, senderName, sourceSheet, targetSheet, processedData) {
   sourceSheet.appendRow([date, subject, body, emailId, emailType]);
   var rowOfMaxValue = findRowOfMaxValue(targetSheet, "A") + 1;
-  targetSheet.getRange("B" + rowOfMaxValue).setValue(date);
-  targetSheet.getRange("C" + rowOfMaxValue).setValue("helpdesk");
-  targetSheet.getRange("E" + rowOfMaxValue).setValue(senderName);
-  targetSheet.getRange("G" + rowOfMaxValue).setValue(subject + "\n" + body);
+
+  var values = [
+    [date], // B
+    ["helpdesk"], // C
+    [senderName], // E
+    [subject + "\n" + body], // G
+  ];
+
+  // Let op, Google Sheets kolom- en rij-indexen starten vanaf 1.
+targetSheet.getRange(rowOfMaxValue, 2, 4, 1).setValues(values);
+
+  var newSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("verwerkMailBody") || SpreadsheetApp.getActiveSpreadsheet().insertSheet("verwerkMailBody");
+  newSheet.appendRow([...processedData, emailId, emailType]); // Hier voeg je processedData toe aan de nieuwe sheet
+}
+
+function processEmailBody(body) {
+  var fromRegex = /Van: (.+)<(.+)>/;
+  var dateRegex = /Date: (.+)/;
+  var subjectRegex = /Subject: (.+)/;
+  var toRegex = /To: (.+)<(.+)>/;
+
+  var from = (body.match(fromRegex) || [])[1];
+  var date = (body.match(dateRegex) || [])[1];
+  var subject = (body.match(subjectRegex) || [])[1];
+  var to = (body.match(toRegex) || [])[1];
+
+  // Voeg verder verwerking toe indien nodig
+
+  return [from, date, subject, to];
 }
