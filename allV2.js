@@ -29,14 +29,14 @@ function processThread(thread, existingEmailIds, nameLookupRange, allowedEmails,
     var emailType = isForwarded(subject, body) ? "forwarded" : "rechtstreeks";
 
     if (existingEmailIds.indexOf(emailId) === -1) {
-      processMessage(message, subject, body, emailType, nameLookupRange, allowedEmails, sourceSheet, targetSheet, folder);
+      processMessage(message, subject, body, emailId, emailType, nameLookupRange, allowedEmails, sourceSheet, targetSheet, folder);
       existingEmailIds.push(emailId);
     }
   }
   thread.markRead();
 }
 
-function processMessage(message, subject, body, emailType, nameLookupRange, allowedEmails, sourceSheet, targetSheet, folder) {
+function processMessage(message, subject, body, emailId, emailType, nameLookupRange, allowedEmails, sourceSheet, targetSheet, folder) {
   var date = message.getDate();
   var sender = message.getFrom();
   var emailMatch = sender.match(/<(.+)>/);
@@ -45,7 +45,7 @@ function processMessage(message, subject, body, emailType, nameLookupRange, allo
   var attachments = message.getAttachments();
 
   if (allowedEmails.indexOf(emailOnly) !== -1) {
-    appendToSheets(date, subject, body, emailId, emailType, senderName, sourceSheet, targetSheet);
+appendToSheets(date, subject, body, emailId, emailType, senderName, sourceSheet, targetSheet);
   }
 
   if (attachments.length > 0) {
@@ -118,5 +118,3 @@ function appendToSheets(date, subject, body, emailId, emailType, senderName, sou
   targetSheet.getRange("E" + rowOfMaxValue).setValue(senderName);
   targetSheet.getRange("G" + rowOfMaxValue).setValue(subject + "\n" + body);
 }
-
-// Overige functies blijven grotendeels hetzelfde
