@@ -37,7 +37,7 @@ function processThread(thread, existingEmailIds, nameLookupRange, allowedEmails,
 }
 
 function processMessage(message, subject, body, emailId, emailType, nameLookupRange, allowedEmails, sourceSheet, targetSheet, folder) {
-  var date = message.getDate();
+    var date = message.getDate();
   var sender = message.getFrom();
   var emailMatch = sender.match(/<(.+)>/);
   var emailOnly = emailMatch ? emailMatch[1] : sender;
@@ -51,8 +51,11 @@ function processMessage(message, subject, body, emailId, emailType, nameLookupRa
 
   if (attachments.length > 0) {
     var attachmentUrls = saveAttachmentsToFolder(attachments, folder);
-    targetSheet.getRange("H" + targetSheet.getLastRow()).setValue(attachmentUrls.join(", "));
+    appendToSheets(date, subject, body, emailId, emailType, senderName, sourceSheet, targetSheet, processedData, attachmentUrls);
+  } else {
+    appendToSheets(date, subject, body, emailId, emailType, senderName, sourceSheet, targetSheet, processedData);
   }
+}
 }
 
 function findRowOfMaxValue(sheet, column) {
@@ -111,8 +114,8 @@ function getSenderName(emailOnly, nameLookupRange) {
   return senderName || "Onbekend";
 }
 
-function appendToSheets(date, subject, body, emailId, emailType, senderName, sourceSheet, targetSheet, processedData) {
-  sourceSheet.appendRow([date, subject, body, emailId, emailType]);
+function appendToSheets(date, subject, body, emailId, emailType, senderName, sourceSheet, targetSheet, processedData, attachmentUrls) {
+    sourceSheet.appendRow([date, subject, body, emailId, emailType]);
   var rowOfMaxValue = findRowOfMaxValue(targetSheet, "A") + 1;
 
   var values = [
@@ -128,6 +131,9 @@ function appendToSheets(date, subject, body, emailId, emailType, senderName, sou
 
   var newSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("verwerkMailBody") || SpreadsheetApp.getActiveSpreadsheet().insertSheet("verwerkMailBody");
   newSheet.appendRow([...processedData, emailId, emailType]); // Hier voeg je processedData toe aan de nieuwe sheet
+  if (attachmentUrls && attachmentUrls.length > 0) {
+    targetSheet.getRange("H" + targetSheet.getLastRow()).setValue(attachmentUrls.join(", "));
+  }
 }
 
 function processEmailBody(body) {
