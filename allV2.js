@@ -122,8 +122,9 @@ function appendToSheets(date, subject, body, emailId, emailType, senderName, sou
     [subject + "\n" + body], // G
   ];
 
-  // Let op, Google Sheets kolom- en rij-indexen starten vanaf 1.
-targetSheet.getRange(rowOfMaxValue, 2, 4, 1).setValues(values);
+  targetSheet.getRange(rowOfMaxValue, 2, 4, 1).setValues(values);
+  targetSheet.getRange(rowOfMaxValue, 8).setValue(emailId); // Kolom H voor emailId
+  targetSheet.getRange(rowOfMaxValue, 9).setValue(emailType); // Kolom I voor emailType
 
   var newSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("verwerkMailBody") || SpreadsheetApp.getActiveSpreadsheet().insertSheet("verwerkMailBody");
   newSheet.appendRow([...processedData, emailId, emailType]); // Hier voeg je processedData toe aan de nieuwe sheet
