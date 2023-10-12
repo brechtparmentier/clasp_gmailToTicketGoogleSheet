@@ -4,13 +4,13 @@ function appendToSheets(date, subject, body, emailId, emailType, senderName, sou
   var rowOfMaxValue = findRowOfMaxValue(targetSheet, "A") + 1;
 
   var values = [
-    [date], // B
-    ["helpdesk"], // C
-    [senderName], // E
-    [subject + "\n" + body], // G
+    date, // B
+    "helpdesk", // C
+    senderName, // E
+    subject + "\n" + body, // G
   ];
 
-  targetSheet.getRange(rowOfMaxValue, 2, 4, 1).setValues(values);
+  targetSheet.getRange(rowOfMaxValue, 2, 1, 4).setValues([values]);
   targetSheet.getRange(rowOfMaxValue, 8).setValue(emailId); // Column H for emailId
   targetSheet.getRange(rowOfMaxValue, 9).setValue(emailType); // Column I for emailType
 
