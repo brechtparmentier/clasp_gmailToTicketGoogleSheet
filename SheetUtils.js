@@ -1,21 +1,26 @@
+var headers = ["ID", "Datum vraag", "Aangemaakt Door", "Voor wie", "Van wie", "Prior?", "Vraag", "Oplossing", "link naar Doc", "Datum oplossing", "Status", "Ok?", "Nodige Tijd", "Extra uren", "Link", "Mail verstuurd op"];
+
 // Function to append data to both source and target sheets
-function appendToSheets(date, subject, body, emailId, emailType, senderName, sourceSheet, targetSheet, processedData, attachmentUrls) {
+function appendToSheets(date, subject, body, emailId, emailType, senderName, sourceSheet, inkomendeVragenSheet, processedData, attachmentUrls) {
   sourceSheet.appendRow([date, subject, body, emailId, emailType]);
-  var rowOfMaxValue = findRowOfMaxValue(targetSheet, "A") + 1;
+  var rowOfMaxValue = findRowOfMaxValue(inkomendeVragenSheet, "A") + 1;
 
-  var values = [
-    date, // B
-    "helpdesk", // C
-    senderName, // E
-    subject + "\n" + body, // G
-  ];
+  // Map values to headers
+  var headerToValue = {
+    "Datum vraag": date,
+    "Aangemaakt Door": "helpdesk",
+    "Van wie": senderName,
+    Vraag: subject + "\n" + body,
+  };
 
-  targetSheet.getRange(rowOfMaxValue, 2, 1, 4).setValues([values]);
-  targetSheet.getRange(rowOfMaxValue, 8).setValue(emailId); // Column H for emailId
-  targetSheet.getRange(rowOfMaxValue, 9).setValue(emailType); // Column I for emailType
+  var values = headers.map(function (header) {
+    return headerToValue[header] || ""; // return the mapped value or an empty string
+  });
+
+  inkomendeVragenSheet.getRange(rowOfMaxValue, 1, 1, headers.length).setValues([values]); // Place the values into the correct columns
 
   if (attachmentUrls && attachmentUrls.length > 0) {
-    targetSheet.getRange("H" + targetSheet.getLastRow()).setValue(attachmentUrls.join(", "));
+    inkomendeVragenSheet.getRange("H" + inkomendeVragenSheet.getLastRow()).setValue(attachmentUrls.join(", "));
   }
 }
 

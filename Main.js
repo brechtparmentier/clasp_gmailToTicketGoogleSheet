@@ -7,7 +7,7 @@ function addEmailsToSheetRechtstreeks() {
   var sourceSheet = sheets.getSheetByName("ontvangenMails");
   var existingEmailIds = new Set(sourceSheet.getRange(1, 4, sourceSheet.getLastRow()).getValues().flat());
 
-  var targetSheet = targetSpreadsheet.getSheetByName("_inkomendeVragen");
+  var inkomendeVragenSheet = targetSpreadsheet.getSheetByName("_inkomendeVragen");
 
   var nameLookupSheet = targetSpreadsheet.getSheetByName("vanWie");
   var nameLookupRange = nameLookupSheet.getRange("A:B").getValues();
@@ -15,13 +15,12 @@ function addEmailsToSheetRechtstreeks() {
 
   var setupSheet = sheets.getSheetByName("setup");
   var allowedEmails = new Set(setupSheet.getRange("A:A").getValues().flat());
-  Logger.log("allowedEmails: " + Array.from(allowedEmails).join(', '));
-
+  Logger.log("allowedEmails: " + Array.from(allowedEmails).join(", "));
 
   var threads = GmailApp.search("to:helpdesk@godk.be");
 
   for (var i in threads) {
-    processThread(threads[i], existingEmailIds, nameLookupMap, allowedEmails, sourceSheet, targetSheet, parentFolderId);
+    processThread(threads[i], existingEmailIds, nameLookupMap, allowedEmails, sourceSheet, inkomendeVragenSheet, parentFolderId);
   }
 }
 
